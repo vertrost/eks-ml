@@ -1,4 +1,3 @@
-
 data "aws_eks_cluster" "default" {
   name = local.cluster_name
 }
@@ -14,16 +13,6 @@ provider "kubernetes" {
   }
 }
 
-resource "kubernetes_namespace" "gpu-operator" {
-  metadata {
-    annotations = {
-      name = local.gpu_operator_namespace
-    }
-
-    name = local.gpu_operator_namespace
-  }
-}
-
 provider "helm" {
   kubernetes {
     host                   = data.aws_eks_cluster.default.endpoint
@@ -36,11 +25,48 @@ provider "helm" {
   }
 }
 
+resource "kubernetes_namespace" "gpu-operator" {
+  metadata {
+    annotations = {
+      name = local.gpu_operator_namespace
+    }
+
+    name = local.gpu_operator_namespace
+  }
+}
+
 resource "helm_release" "nvidia" {
-    count = 0
   name       = "nvidia"
   repository = "https://helm.ngc.nvidia.com/nvidia"
   chart      = local.gpu_operator_namespace
   namespace  = "gpu-operator"
-  version    = "v23.9.2"
+  version    = "v23.9.1"
+
+  set {
+    name  = "tolerations[0].key"
+    value = "dedicated"
+  }
+
+  set {
+    name  = "tolerations[0].value"
+    value = "gpuGroup"
+  }
+
+  set {
+    name  = "tolerations[0].operator"
+    value = "Equal"
+  }
+
+  set {
+    name  = "tolerations[0].effect"
+    value = "NO_SCHEDULE"
+  }
 }
+
+# resource "helm_release" "cluster_autoscaler" {
+#   name       = "nvidia"
+#   repository = "https://kubernetes.github.io/autoscaler"
+#   chart      = "cluster-autoscaler"
+#   namespace  = "cluster-autoscaler"
+#   version    = "9.36.0"
+# }
