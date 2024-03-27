@@ -86,12 +86,26 @@ module "eks_managed_node_group" {
 
   min_size     = 0
   max_size     = 1
-  desired_size = 0
+  desired_size = 1
 
   instance_types = ["g4dn.xlarge"]
   ami_type       = "AL2_x86_64_GPU"
   # ami_id         = "ami-00a9ec5cda5e3ffa8"
   capacity_type = "ON_DEMAND"
+
+  block_device_mappings = {
+    xvda = {
+      device_name = "/dev/xvda"
+      ebs = {
+        volume_size           = 50
+        volume_type           = "gp3"
+        iops                  = 3000
+        throughput            = 150
+        delete_on_termination = true
+        ebs_optimized         = true
+      }
+    }
+  }
 
   labels = {
     Environment = "dev"

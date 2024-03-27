@@ -11,6 +11,12 @@ spec:
        limits: 
          nvidia.com/gpu: 1 # requesting 1 GPU 
   tolerations: 
-    - key: nvidia.com/gpu
-      operator: Exists 
-      effect: NoSchedule
+    - key: "dedicated"
+      operator: "Equal"
+      value: "gpuGroup" 
+      effect: "NoSchedule"
+
+# Tolerations:                 dedicated=gpuGroup:NoSchedule
+#                              node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+#                              node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+#                              nvidia.com/gpu:NoSchedule op=Exists
