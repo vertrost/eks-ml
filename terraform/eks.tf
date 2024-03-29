@@ -1,11 +1,12 @@
 locals {
-  cluster_name           = "ml"
+  environment            = "dev"
+  cluster_name           = "ml-${local.environment}"
   gpu_operator_namespace = "gpu-operator"
 }
 
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "~> 20.0"
+  version = "20.8.4"
 
   cluster_name = local.cluster_name
   # cluster_version = "1.29"
@@ -33,33 +34,18 @@ module "eks" {
   # To add the current caller identity as an administrator
   enable_cluster_creator_admin_permissions = true
 
-  #   access_entries = {
-  #     # One access entry with a policy associated
-  #     example = {
-  #       kubernetes_groups = []
-  #       principal_arn     = "arn:aws:iam::381491841187:user/szhekpisov"
-
-  #       policy_associations = {
-  #         example = {
-  #           policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSViewPolicy"
-  #           access_scope = {
-  #             namespaces = ["default"]
-  #             type       = "namespace"
-  #           }
-  #         }
-  #       }
-  #     }
-  #   }
-
   tags = {
-    Environment = "dev"
+    Environment = local.environment
     Terraform   = "true"
   }
+
+  depends_on = [ module.vpc ]
 }
 
-module "eks_managed_node_group" {
+module "eks_managed_node_group_gpu" {
   # count  = 0
   source = "terraform-aws-modules/eks/aws//modules/eks-managed-node-group"
+  version = "20.8.4"
 
   name            = "${local.cluster_name}-nodes"
   cluster_name    = local.cluster_name
@@ -73,17 +59,6 @@ module "eks_managed_node_group" {
   vpc_security_group_ids            = [module.eks.node_security_group_id]
   cluster_service_cidr              = module.eks.cluster_service_cidr
 
-  // Note: `disk_size`, and `remote_access` can only be set when using the EKS managed node group default launch template
-  // This module defaults to providing a custom launch template to allow for custom security groups, tag propagation, etc.
-  // use_custom_launch_template = false
-  // disk_size = 50
-  //
-  //  # Remote access cannot be specified with a launch template
-  //  remote_access = {
-  //    ec2_ssh_key               = module.key_pair.key_pair_name
-  //    source_security_group_ids = [aws_security_group.remote_access.id]
-  //  }
-
   min_size     = 0
   max_size     = 1
   desired_size = 1
@@ -91,7 +66,7 @@ module "eks_managed_node_group" {
   instance_types = ["g4dn.xlarge"]
   ami_type       = "AL2_x86_64_GPU"
   # ami_id         = "ami-00a9ec5cda5e3ffa8"
-  capacity_type = "ON_DEMAND"
+  capacity_type = "SPOT"
 
   block_device_mappings = {
     xvda = {
@@ -108,7 +83,7 @@ module "eks_managed_node_group" {
   }
 
   labels = {
-    Environment = "dev"
+    Environment = local.environment
   }
 
   taints = {
@@ -120,14 +95,17 @@ module "eks_managed_node_group" {
   }
 
   tags = {
-    Environment = "dev"
+    Environment = local.environment
     Terraform   = "true"
   }
+
+  depends_on = [ module.eks ]
 }
 
 module "eks_managed_node_group_default" {
   # count  = 0
   source = "terraform-aws-modules/eks/aws//modules/eks-managed-node-group"
+  version = "20.8.4"
 
   name            = "${local.cluster_name}-default-nodes"
   cluster_name    = local.cluster_name
@@ -141,17 +119,6 @@ module "eks_managed_node_group_default" {
   vpc_security_group_ids            = [module.eks.node_security_group_id]
   cluster_service_cidr              = module.eks.cluster_service_cidr
 
-  // Note: `disk_size`, and `remote_access` can only be set when using the EKS managed node group default launch template
-  // This module defaults to providing a custom launch template to allow for custom security groups, tag propagation, etc.
-  // use_custom_launch_template = false
-  // disk_size = 50
-  //
-  //  # Remote access cannot be specified with a launch template
-  //  remote_access = {
-  //    ec2_ssh_key               = module.key_pair.key_pair_name
-  //    source_security_group_ids = [aws_security_group.remote_access.id]
-  //  }
-
   min_size     = 0
   max_size     = 1
   desired_size = 1
@@ -161,13 +128,13 @@ module "eks_managed_node_group_default" {
   capacity_type  = "SPOT"
 
   labels = {
-    Environment = "dev"
+    Environment = local.environment
   }
 
   tags = {
-    Environment = "dev"
+    Environment = local.environment
     Terraform   = "true"
   }
-}
 
-  
+  depends_on = [ module.vpc ]
+}
