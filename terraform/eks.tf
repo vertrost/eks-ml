@@ -10,7 +10,7 @@ module "eks" {
 
   cluster_name = local.cluster_name
   # cluster_version = "1.29"
-  cluster_version = "1.25"
+  cluster_version = "1.26"
 
   cluster_endpoint_public_access = true
 
@@ -39,15 +39,15 @@ module "eks" {
     Terraform   = "true"
   }
 
-  depends_on = [ module.vpc ]
+  depends_on = [module.vpc]
 }
 
 module "eks_managed_node_group_gpu" {
   # count  = 0
-  source = "terraform-aws-modules/eks/aws//modules/eks-managed-node-group"
+  source  = "terraform-aws-modules/eks/aws//modules/eks-managed-node-group"
   version = "20.8.4"
 
-  name            = "${local.cluster_name}-nodes"
+  name            = "${local.cluster_name}-gpu-nodes"
   cluster_name    = local.cluster_name
   cluster_version = module.eks.cluster_version
 
@@ -59,14 +59,14 @@ module "eks_managed_node_group_gpu" {
   vpc_security_group_ids            = [module.eks.node_security_group_id]
   cluster_service_cidr              = module.eks.cluster_service_cidr
 
-  min_size     = 0
+  min_size     = 1
   max_size     = 1
   desired_size = 1
 
   instance_types = ["g4dn.xlarge"]
-  ami_type       = "AL2_x86_64_GPU"
-  # ami_id         = "ami-00a9ec5cda5e3ffa8"
-  capacity_type = "SPOT"
+  ami_type       = "BOTTLEROCKET_x86_64_NVIDIA" 
+  # ami_id         = "ami-078ce101c2c6e6bb0"
+  capacity_type = "ON_DEMAND"
 
   block_device_mappings = {
     xvda = {
@@ -99,12 +99,12 @@ module "eks_managed_node_group_gpu" {
     Terraform   = "true"
   }
 
-  depends_on = [ module.eks ]
+  depends_on = [module.eks]
 }
 
 module "eks_managed_node_group_default" {
   # count  = 0
-  source = "terraform-aws-modules/eks/aws//modules/eks-managed-node-group"
+  source  = "terraform-aws-modules/eks/aws//modules/eks-managed-node-group"
   version = "20.8.4"
 
   name            = "${local.cluster_name}-default-nodes"
@@ -136,5 +136,5 @@ module "eks_managed_node_group_default" {
     Terraform   = "true"
   }
 
-  depends_on = [ module.vpc ]
+  depends_on = [module.vpc]
 }
