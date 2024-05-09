@@ -12,6 +12,8 @@ resource "kubernetes_namespace" "gpu-operator" {
 
     name = local.gpu_operator_namespace
   }
+
+  depends_on = [ module.eks, module.eks_managed_node_group_gpu ]
 }
 
 # resource "kubernetes_namespace" "cluster-autoscaler" {
@@ -90,7 +92,7 @@ resource "helm_release" "nvidia" {
     value = "NoSchedule"
   }
 
-  depends_on = [kubernetes_namespace.gpu-operator]
+  depends_on = [kubernetes_namespace.gpu-operator, module.eks_managed_node_group_gpu ]
 }
 
 # resource "helm_release" "cluster_autoscaler" {
