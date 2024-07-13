@@ -4,3 +4,8 @@
 *.tfstate
 *.tfstate.backup
 *.tfstate.*
+
+**/pulumi-venv
+__pycache__
+*.pyc
+venv/
